@@ -402,6 +402,7 @@ pytest tests/ -k "benchmark"
 - **Trimesh Documentation**: https://trimsh.org/
 - **PyVista**: https://docs.pyvista.org/
 - **OpenSCAD CSG**: https://en.wikibooks.org/wiki/OpenSCAD_User_Manual
+- **Objetos 3D para impresoras**: https://www.thingiverse.com
 
 ---
 
