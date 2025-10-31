@@ -9,7 +9,7 @@ Sistema funcional para generar modelos 3D paramétricos mediante álgebra lineal
 **Profesor**: Gonzalez Zepeda Sebastian  
 **Semestre**: Agosto 2025 - Enero 2026{
 
-**Colaboradores**: Eduardo David Ochoa Alvarez
+**Colaboradores**: Eduardo David Ochoa Alvarez    Carlos Aaron Ramirez Vilchis
 
 ---
 
