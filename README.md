@@ -7,8 +7,9 @@ Sistema funcional para generar modelos 3D paramétricos mediante álgebra lineal
 **Universidad de Colima - Ingeniería en Computación Inteligente**  
 **Materia**: Programación Funcional  
 **Profesor**: Gonzalez Zepeda Sebastian  
-**Semestre**: Agosto 2025 - Enero 2026
-  **Colaboradores**: Eduardo David Ochoa Alvarez
+**Semestre**: Agosto 2025 - Enero 2026{
+
+**Colaboradores**: Eduardo David Ochoa Alvarez
 
 ---
 
