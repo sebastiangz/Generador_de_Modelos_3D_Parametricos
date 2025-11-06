@@ -64,3 +64,59 @@ def normalize(self) -> 'Vector3':
 def map(self, fn: Callable[[float], float]) -> 'Vector3':
     """Aplica una función a cada componente del vector"""
     return Vector3(fn(self.x), fn(self.y), fn(self.z))
+
+
+@dataclass(frozen=True)
+class Matrix4x4:
+    """
+    Representa una matriz de transformación 4x4 inmutable (homogénea).
+    Los datos se almacenan en un tuple de 16 elementos (row-major).
+    """
+    data: Tuple[float, ...]
+
+    def __post_init__(self):
+        """Valida que la matriz tenga 16 elementos después de la inicialización"""
+        if len(self.data) != 16:
+            raise ValueError("Matrix4x4 debe ser inicializada con 16 elementos.")
+
+    def as_numpy(self) -> np.ndarray:
+        """Convierte el tuple a un array numpy 4x4"""
+        return np.array(self.data, dtype=float).reshape(4, 4)
+
+    def multiply(self, other: 'Matrix4x4') -> 'Matrix4x4':
+        """Multiplicación de matrices (self * other)"""
+        a = self.as_numpy()
+        b = other.as_numpy()
+        result = np.matmul(a, b)
+        return Matrix4x4(tuple(result.flatten()))
+
+    def apply_to_vector(self, v: Vector3) -> Vector3:
+        """Aplica la transformación de la matriz a un Vector3 (punto)"""
+        m = self.as_numpy()
+        # Vector homogéneo (x, y, z, 1) para transformaciones afines
+        vec = np.array([v.x, v.y, v.z, 1.0])
+        result = np.matmul(m, vec)
+        
+        # Normalización W (para proyecciones, aunque aquí W suele ser 1)
+        if result[3] != 0 and result[3] != 1:
+            return Vector3(result[0] / result[3], result[1] / result[3], result[2] / result[3])
+        
+        return Vector3(result[0], result[1], result[2])
+
+    def inverse(self) -> 'Matrix4x4':
+        """Calcula la matriz inversa. Crítico para CSG."""
+        try:
+            inv_matrix = np.linalg.inv(self.as_numpy())
+            return Matrix4x4(tuple(inv_matrix.flatten()))
+        except np.linalg.LinAlgError:
+            raise ValueError("La matriz no es invertible")
+
+    @staticmethod
+    def identity() -> 'Matrix4x4':
+        """Retorna una matriz identidad 4x4"""
+        return Matrix4x4((
+            1, 0, 0, 0,
+            0, 1, 0, 0,
+            0, 0, 1, 0,
+            0, 0, 0, 1
+        ))
