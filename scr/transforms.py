@@ -24,7 +24,7 @@ TransformFn = Callable[[Solid], Solid]
 def _rotation_matrix(axis: str, degrees: float) -> Matrix4x4:
     """Crea una matriz de rotación (Euler)"""
     rad = np.radians(degrees)
-    cos, sin = np.cos(rad), np.sin(sin)
+    cos, sin = np.cos(rad), np.sin(rad)
 
     if axis == 'x':
         data = (
