@@ -115,3 +115,33 @@ class Solid:
         new_bounds = transform_bounds(self.bounds, matrix)
             
         return Solid(new_contains, new_bounds)
+    
+# --- Operaciones CSG (Funciones Puras) ---
+
+def union(solid1: Solid, solid2: Solid) -> Solid:
+    """Unión booleana de dos sólidos"""
+    def contains(point: Vector3) -> bool:
+        # Un punto está en la unión si está en CUALQUIERA de los sólidos
+        return solid1.contains(point) or solid2.contains(point)
+
+    new_bounds = combine_bounds(solid1.bounds, solid2.bounds)
+    return Solid(contains, new_bounds)
+
+def intersection(solid1: Solid, solid2: Solid) -> Solid:
+    """Intersección booleana de dos sólidos"""
+    def contains(point: Vector3) -> bool:
+        # Un punto está en la intersección si está en AMBOS sólidos
+        return solid1.contains(point) and solid2.contains(point)
+
+    new_bounds = intersect_bounds(solid1.bounds, solid2.bounds)
+    return Solid(contains, new_bounds)
+
+def difference(solid1: Solid, solid2: Solid) -> Solid:
+    """Diferencia booleana (solid1 - solid2)"""
+    def contains(point: Vector3) -> bool:
+        # Un punto está en la diferencia si está en el primero
+        # Y NO en el segundo.
+        return solid1.contains(point) and not solid2.contains(point)
+
+    # El Bounding Box resultante es, por definición, el de solid1
+    return Solid(contains, solid1.bounds)
