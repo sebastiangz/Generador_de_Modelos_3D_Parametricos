@@ -419,9 +419,9 @@ pytest tests/ -k "benchmark"
 
 ## 👥 Autor
 
-**Nombre**: [Tu Nombre]  
-**Email**: [tu-email@ucol.mx]  
-**GitHub**: [@tu-usuario](https://github.com/tu-usuario)
+**Nombre**: Eduardo David Ochoa Álvarez  
+**Email**: eochoa29@ucol.mx  
+**GitHub**: @Davz29 https://github.com/Davz29
 
 **Nombre**: Víctor Leonardo Hernández Domínguez   
 **Email**: vhernandez25@gmail.com  
@@ -430,20 +430,24 @@ pytest tests/ -k "benchmark"
 **Nombre**: [Tu Nombre]  
 **Email**: [tu-email@ucol.mx]  
 **GitHub**: [@tu-usuario](https://github.com/tu-usuario)
-
-
 ---
 
 ## 📄 Licencia
 
 Proyecto académico - Universidad de Colima © 2025
 
-## Commits/Changes
--
--
--
--
--
+## Commits/Changes [Para representar las modificaciones posteriores se usara el marcador " / "]
+-Actualizacion de README para ingresar datos de los autores (/Modificaciones extras en el README)
+-Se agrega las carpetas con la estructura del proyecto
+-Update geometry.py
+-Update transforms.py (/ Se corrigió el error de sintaxis que estaba en la  línea 27  del np.sin(rad))
+-Update vectors.py (Se añade la estructura de datos Vector3 utilizando @dataclass(frozen=True) para garantizar la       inmutabilidad./ Implementa suma, resta, producto punto, producto cruz y normalización./ Añade la clase inmutable Matrix4x4 para gestionar transformaciones 3D homogéneas. La clase utiliza un tuple interno (data) y delega los cálculos matemáticos complejos (multiplicación, inversa) a NumPy para mayor eficiencia y precisión.)
+-Se añaden las funciones básicas para operar con las "cajas" (AABB)
+-Update csg.py
+-Operaciones CSG
+-Corrección de codigo debido a un error de identación
+-Agrega pytest a requirements.txt e ignora venv en .gitignore
+-Se agregan 11 tests unitarios para el módulo 'csg' que cubren la lógica de operaciones booleanas y el manejo de límites. Se añade también el archivo 'pytest.ini' con la configuración 'pythonpath = .' para asegurar que pytest pueda localizar los módulos 'src' y ejecutar las pruebas correctamente.
 -
 -
 -
