@@ -423,8 +423,29 @@ pytest tests/ -k "benchmark"
 **Email**: [tu-email@ucol.mx]  
 **GitHub**: [@tu-usuario](https://github.com/tu-usuario)
 
+**Nombre**: [Tu Nombre]  
+**Email**: [tu-email@ucol.mx]  
+**GitHub**: [@tu-usuario](https://github.com/tu-usuario)
+
+**Nombre**: [Tu Nombre]  
+**Email**: [tu-email@ucol.mx]  
+**GitHub**: [@tu-usuario](https://github.com/tu-usuario)
+
+
 ---
 
 ## 📄 Licencia
 
 Proyecto académico - Universidad de Colima © 2025
+
+## Commits/Changes
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
