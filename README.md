@@ -423,9 +423,9 @@ pytest tests/ -k "benchmark"
 **Email**: [tu-email@ucol.mx]  
 **GitHub**: [@tu-usuario](https://github.com/tu-usuario)
 
-**Nombre**: [Tu Nombre]  
-**Email**: [tu-email@ucol.mx]  
-**GitHub**: [@tu-usuario](https://github.com/tu-usuario)
+**Nombre**: Víctor Leonardo Hernández Domínguez   
+**Email**: vhernandez25@gmail.com  
+**GitHub**: LeoHdzDev (https://github.com/LeoHdzDev)
 
 **Nombre**: [Tu Nombre]  
 **Email**: [tu-email@ucol.mx]  
