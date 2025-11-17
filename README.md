@@ -427,9 +427,9 @@ pytest tests/ -k "benchmark"
 **Email**: vhernandez25@gmail.com  
 **GitHub**: LeoHdzDev (https://github.com/LeoHdzDev)
 
-**Nombre**: [Tu Nombre]  
-**Email**: [tu-email@ucol.mx]  
-**GitHub**: [@tu-usuario](https://github.com/tu-usuario)
+**Nombre**: Carlos Aaron Ramirez Vilchis  
+**Email**: cramirez99@ucol.mx  
+**GitHub**: @carlosaaronramirezvilchis77 (https://github.com/carlosaaronramirezvilchis77-ai)
 ---
 
 ## 📄 Licencia
