@@ -15,13 +15,18 @@ from src.export import export_stl
 # --- 1. FUNCIONES PARA PROCESAR IMAGEN (LO QUE FALTABA) ---
 
 def load_image_as_mask(image_path: str, threshold: int = 128) -> np.ndarray:
-    """Carga la imagen y detecta píxeles negros."""
+    """
+    Versión ESTÁNDAR: Perfecta para tu imagen de estrella negra con fondo blanco.
+    """
     if not os.path.exists(image_path):
         raise FileNotFoundError(f"¡No se encuentra la imagen: {image_path}!")
     
-    img = Image.open(image_path).convert('L') # Escala de grises
+    # Convertimos a escala de grises ('L')
+    img = Image.open(image_path).convert('L') 
     data = np.array(img)
-    # True donde es oscuro (negro), False donde es claro (blanco)
+    
+    # REGLA: Lo que sea oscuro (< 128) es Sólido (True)
+    # Como tu estrella es negra (0) y el fondo blanco (255), esto funcionará perfecto.
     return data < threshold
 
 def image_solid(mask: np.ndarray, width: float, height: float, thickness: float) -> Solid:

@@ -1,89 +1,129 @@
-"""
-architecture.py
+import os
+import sys
+from functools import reduce
 
-Generación de un modelo arquitectónico (columna hueca con base).
-Demuestra:
-- Encadenamiento de operaciones.
-- Creación de un modelo hueco (Diferencia).
-- Uso de composiciones complejas (pipe).
-"""
+# Ajustar path para importar src
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from src.geometry import box, cylinder
-from src.transforms import translate, scale, scale_uniform, rotate
-from src.csg import difference, union
-from toolz import pipe
-from src.csg import Solid
-import math
+from src.vectors import Vector3
+from src.geometry import box, cylinder, pyramid
+from src.transforms import translate, rotate, scale
+from src.csg import union, difference, Solid
+from src.export import export_stl
 
-# --- Funciones Composables ---
+# --- 1. COMPONENTES MODULARES (Las piezas de Lego) ---
 
-def make_pedestal(size: float, height: float) -> 'Solid':
-    """Crea la base de la columna (un prisma ancho y bajo)."""
-    return box(size, height, size)
+def create_floor_segment(width: float, height: float) -> Solid:
+    """
+    Crea un piso individual.
+    Consiste en una losa (box) y 4 columnas en las esquinas.
+    """
+    # 1. La Losa (Suelo)
+    slab = box(width, height, width)
+    
+    # 2. Columnas (Cilindros en las esquinas)
+    col_radius = width * 0.1
+    col_height = height * 3 # Las columnas son más altas para conectar pisos
+    col_offset = width / 2.0 - col_radius
+    
+    # Creamos una columna base
+    column = cylinder(col_radius, col_height)
+    
+    # Posicionamos las 4 columnas
+    c1 = translate(x=col_offset, y=col_offset)(column)
+    c2 = translate(x=-col_offset, y=col_offset)(column)
+    c3 = translate(x=col_offset, y=-col_offset)(column)
+    c4 = translate(x=-col_offset, y=-col_offset)(column)
+    
+    # Unimos todo en un solo bloque "Piso"
+    # Usamos reduce para unir una lista de objetos secuencialmente
+    parts = [slab, c1, c2, c3, c4]
+    floor_structure = reduce(union, parts)
+    
+    return floor_structure
 
-def make_shaft_hollow(radius: float, height: float, thickness: float) -> 'Solid':
-    """Crea el fuste (cuerpo) de la columna como un tubo."""
-    # Cilindro exterior
-    outer = cylinder(radius=radius, height=height)
-    # Cilindro interior (el hueco)
-    inner_radius = radius - thickness
-    if inner_radius <= 0:
-        raise ValueError("El grosor es demasiado grande para el radio.")
+def create_roof_antenna(width: float) -> Solid:
+    """Crea una antena piramidal para el techo"""
+    base = box(width, 2, width)
+    spire = pyramid(width * 0.8, width * 0.8, height=15)
+    # Subir la espira para que esté sobre la base
+    spire_moved = translate(z=8)(spire)
+    return union(base, spire_moved)
+
+# --- 2. GENERADOR PROCEDIMENTAL (El Arquitecto) ---
+
+def build_twisted_tower(
+    floors: int = 20, 
+    floor_width: float = 10.0, 
+    floor_height: float = 2.0,
+    twist_angle: float = 5.0
+) -> Solid:
+    """
+    Genera una torre completa apilando pisos y rotándolos progresivamente.
+    """
+    generated_floors = []
+    
+    # Creamos el modelo base de un piso
+    base_floor = create_floor_segment(floor_width, floor_height)
+    
+    for i in range(floors):
+        # Calcular transformaciones para este piso específico
+        # 1. Subir (z)
+        elevation = i * floor_height * 1.2 # 1.2 para dejar espacio visual
+        # 2. Girar (z)
+        rotation = i * twist_angle
         
-    hole = cylinder(radius=inner_radius, height=height * 1.5) # Asegurar corte total
+        # Aplicar transformaciones: Primero rotar, luego subir
+        # (El orden importa: si subes y luego rotas, rotarías alrededor del origen mundial)
+        transform_fn = translate(z=elevation)
+        rotate_fn = rotate(axis='z', degrees=rotation)
+        
+        # Aplicar al piso base
+        # Nota: En nuestra lógica funcional, aplicamos rotation primero al objeto, 
+        # y al resultado lo trasladamos.
+        current_floor = transform_fn(rotate_fn(base_floor))
+        
+        generated_floors.append(current_floor)
     
-    # El hueco se crea usando diferencia
-    return difference(outer, hole)
-
-# --- Construcción del Modelo Final ---
-
-def create_column(pedestal_size=20, pedestal_h=5, shaft_r=8, shaft_h=80, shaft_t=1) -> 'Solid':
+    # Unir todos los pisos en un solo edificio
+    tower_body = reduce(union, generated_floors)
     
-    # 1. Base (Pedestal)
-    pedestal = make_pedestal(pedestal_size, pedestal_h)
+    # Agregar el techo
+    total_height = floors * floor_height * 1.2
+    final_rotation = floors * twist_angle
     
-    # Ajustar el pedestal para que su base esté en Z=0
-    # Está centrado, así que necesita ser trasladado por pedestal_h/2
-    translate_pedestal_up = translate(z=pedestal_h / 2.0)
-    final_pedestal = translate_pedestal_up(pedestal)
-    
-    # 2. Fuste (Shaft)
-    shaft = make_shaft_hollow(shaft_r, shaft_h, shaft_t)
-    
-    # Trasladar el fuste para que descanse sobre el pedestal.
-    # El centro del pedestal está en pedestal_h/2. El centro del shaft debe estar 
-    # en pedestal_h + shaft_h/2.
-    z_center_shaft = pedestal_h + (shaft_h / 2.0)
-    
-    translate_shaft_up = translate(z=z_center_shaft)
-    final_shaft = translate_shaft_up(shaft)
-    
-    # 3. Capital (Tope de la Columna - un cubo simple por simplicidad)
-    capital_size = pedestal_size * 0.8
-    capital_h = pedestal_h * 1.5
-    capital = box(capital_size, capital_size, capital_h)
-    
-    # Trasladar el tope sobre el fuste
-    z_center_capital = pedestal_h + shaft_h + (capital_h / 2.0)
-    translate_capital_up = translate(z=z_center_capital)
-    final_capital = translate_capital_up(capital)
-    
-    # 4. Unión final de las partes (Composición Funcional)
-    # pipe(input, fn1, fn2, ...)
-    final_column = pipe(
-        final_pedestal,
-        lambda s: union(s, final_shaft),
-        lambda s: union(s, final_capital)
+    roof = create_roof_antenna(floor_width)
+    # Mover el techo al tope y rotarlo igual que el último piso
+    roof_transformed = translate(z=total_height)(
+        rotate(axis='z', degrees=final_rotation)(roof)
     )
     
-    return final_column
+    return union(tower_body, roof_transformed)
 
-# --- USO ---
+# --- 3. EJECUCIÓN ---
+
 if __name__ == '__main__':
-    from src.export import export_stl 
+    print("🏗️ Iniciando Arquitecto Paramétrico...")
     
-    column_model = create_column()
+    # Parámetros de diseño
+    N_PISOS = 25
+    ANCHO = 12.0
+    GIRO = 10.0 # Grados por piso
     
-    print("Generando columna arquitectónica...")
-    export_stl(column_model, 'models/arch_column.stl', resolution=100)
-    print("Columna exportada a models/arch_column.stl")
+    print(f"Diseñando torre de {N_PISOS} pisos con giro de {GIRO} grados...")
+    
+    # Generar la torre
+    skyscraper = build_twisted_tower(
+        floors=N_PISOS, 
+        floor_width=ANCHO, 
+        twist_angle=GIRO
+    )
+    
+    # Definir ruta de salida
+    output_path = os.path.join(os.path.dirname(__file__), '..', 'models', 'twisted_tower.stl')
+    
+    print("Generando geometría (esto puede tardar un poco por la cantidad de uniones)...")
+    # Resolution 60 es suficiente para bloques rectos
+    export_stl(skyscraper, output_path, resolution=60)
+    
+    print(f"✅ Edificio construido en: {output_path}")

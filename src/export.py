@@ -116,8 +116,8 @@ def export_surface_stl(
     try:
         mesh_obj = mesh_from_surface(surface_fn, u_range, v_range, u_steps, v_steps)
 
-        encoding = 'ascii' if ascii else None
-        mesh_obj.export(filename, file_type='stl', encoding=encoding)
+        ftype = 'stl_ascii' if ascii else 'stl'
+        mesh_obj.export(filename, file_type=ftype)
 
         format_type = "ASCII" if ascii else "Binario"
         print(f"Archivo de superficie guardado: {filename} ({format_type})")
