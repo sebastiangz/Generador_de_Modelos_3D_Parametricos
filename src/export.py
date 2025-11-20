@@ -44,8 +44,8 @@ def export_stl(
         if not mesh_obj.is_empty:
             # Determinar el 'encoding' para trimesh
             # None (default) usa binario, 'ascii' usa ASCII.
-            encoding = 'ascii' if ascii else None
-            mesh_obj.export(filename, file_type='stl', encoding=encoding)
+            ftype = 'stl_ascii' if ascii else 'stl'
+            mesh_obj.export(filename, file_type=ftype)
 
             format_type = "ASCII" if ascii else "Binario"
             print(f"Archivo guardado exitosamente: {filename} ({format_type})")

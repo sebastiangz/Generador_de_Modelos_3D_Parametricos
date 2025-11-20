@@ -1,82 +1,124 @@
-"""
-organic_shapes.py
-
-Generador de formas orgánicas usando curvas y superficies paramétricas.
-Demuestra:
-- Uso de NURBS (Non-Uniform Rational B-Splines) para el perfil 2D.
-- Uso de Surface of Revolution (Superficie de Revolución).
-"""
-
-from src.vectors import Vector3
-from src.curves import nurbs_curve
-from src.mesh import mesh_from_surface
-from src.curves import nurbs_curve, ParametricCurve # <-- AÑADIR ParametricCurve
-from src.surfaces import surface_of_revolution, Curve2D # <-- AÑADIR Curve2D
+import os
+import sys
 import numpy as np
-import math
+from PIL import Image
+from toolz import compose
 
-def create_smooth_vase_profile() -> 'ParametricCurve':
-    """
-    Define la forma 2D (radio vs altura) usando una curva NURBS.
-    Los puntos de control y pesos controlan la suavidad y el ensanchamiento.
-    """
-    # Puntos de control (solo en el plano XZ - radio y altura)
-    # (x, y) = (radio, z)
-    control_points = [
-        Vector3(0, 0, -10),    # Base (radio 0, z=-10)
-        Vector3(15, 0, -8),    # Hombro inferior (tira el perfil hacia afuera)
-        Vector3(25, 0, 5),     # Cuerpo principal (más ancho)
-        Vector3(15, 0, 18),    # Hombro superior
-        Vector3(5, 0, 20)      # Boca (radio 5, z=20)
-    ]
+# Ajustar path para importar src
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-    # Vector de Nudos (Knots) - no uniforme para mayor control
-    degree = 2 # Grado cuadrático
-    num_points = len(control_points)
-    num_knots = num_points + degree + 1
+from src.geometry import cylinder, box
+from src.transforms import translate, rotate, scale
+from src.csg import difference, union, Solid
+from src.export import export_stl
+
+# --- 1. FUNCIONES PARA PROCESAR IMAGEN (LO QUE FALTABA) ---
+
+def load_image_as_mask(image_path: str, threshold: int = 128) -> np.ndarray:
+    """Carga la imagen y detecta píxeles negros."""
+    if not os.path.exists(image_path):
+        raise FileNotFoundError(f"¡No se encuentra la imagen: {image_path}!")
     
-    # Crear un vector de nudos no uniforme (esto permite a NURBS modelar curvas complejas)
-    knots = np.zeros(num_knots)
-    knots[degree:num_points] = np.linspace(0, 1, num_points - degree)
-    knots[num_points:] = 1.0
-    
-    # Pesos (Weights) - para hacer la curva "racional" (NURBS)
-    # Pesos más altos 'jalan' la curva hacia ese punto
-    weights = [1.0, 1.5, 1.0, 1.5, 1.0] 
+    img = Image.open(image_path).convert('L') # Escala de grises
+    data = np.array(img)
+    # True donde es oscuro (negro), False donde es claro (blanco)
+    return data < threshold
 
-    # Crear la curva NURBS
-    return nurbs_curve(control_points, knots.tolist(), weights, degree)
+def image_solid(mask: np.ndarray, width: float, height: float, thickness: float) -> Solid:
+    """Convierte la máscara de la imagen en un objeto 3D."""
+    img_h, img_w = mask.shape
+    w2, h2, d2 = width / 2.0, height / 2.0, thickness / 2.0
 
-def get_profile_fn(nurbs_fn: 'ParametricCurve') -> 'Curve2D':
-    """
-    Convierte la curva NURBS 3D (x, 0, z) en la función Curve2D (radio, altura).
-    """
-    def curve_2d(u: float) -> tuple[float, float]:
-        # El parámetro 'u' de la superficie mapea a 't' de la curva
-        point = nurbs_fn(u)
-        # (radio, altura)
-        return (point.x, point.z) 
-    return curve_2d
+    def contains(p):
+        # Verificar límites físicos
+        if not (abs(p.x) <= w2 and abs(p.y) <= h2 and abs(p.z) <= d2):
+            return False
+        
+        # Mapear 3D -> 2D Píxel
+        u = (p.x + w2) / width
+        v = (p.y + h2) / height
+        px = int(u * (img_w - 1))
+        py = int((1 - v) * (img_h - 1)) # Invertir Y
+        
+        # Verificar límites de array por seguridad
+        if 0 <= px < img_w and 0 <= py < img_h:
+            return mask[py, px]
+        return False
 
-# --- USO ---
-if __name__ == '__main__':
-    from src.export import export_surface_stl
-    
-    # 1. Crear la curva de perfil NURBS
-    nurbs_profile = create_smooth_vase_profile()
-    
-    # 2. Obtener la función (radio, altura)
-    profile_fn = get_profile_fn(nurbs_profile)
-    
-    # 3. Crear la Superficie de Revolución rotando el perfil alrededor del eje Z
-    vase_surface_fn = surface_of_revolution(profile_fn, axis='z')
-
-    print("Generando superficie paramétrica...")
-    # 4. Exportar a STL usando el generador de mallas de superficie
-    export_surface_stl(
-        vase_surface_fn, 
-        'models/organic_vase.stl', 
-        u_steps=60, # Resolución a lo largo del perfil
-        v_steps=60  # Resolución alrededor del eje de rotación
+    bounds = (
+        type('Vector3', (), {'x': -w2, 'y': -h2, 'z': -d2}), # Hack rápido para bounds
+        type('Vector3', (), {'x': w2, 'y': h2, 'z': d2})
     )
-    print("Florero orgánico exportado a models/organic_vase.stl")
+    # Nota: Usamos la clase Solid real importada, los bounds aquí son referenciales
+    # para que coincida con tu implementación de src.csg
+    from src.vectors import Vector3
+    real_bounds = (Vector3(-w2, -h2, -d2), Vector3(w2, h2, d2))
+    return Solid(contains, real_bounds)
+
+# --- 2. GENERADOR DE ENGRANAJE BASE ---
+
+def create_simple_gear(radius=15.0, thickness=5.0, teeth=12) -> Solid:
+    """Crea un engranaje base simplificado."""
+    # Base cilíndrica
+    base = cylinder(radius=radius, height=thickness)
+    
+    # Dientes (restados)
+    tooth_depth = 3.0
+    cutter = box(width=4.0, height=thickness + 2, depth=5.0)
+    
+    # Movemos el cortador al borde
+    cutter_moved = translate(x=radius)(cutter)
+    
+    # Acumulamos los cortes
+    full_gear = base
+    angle_step = 360.0 / teeth
+    
+    for i in range(teeth):
+        # Rotamos el cortador
+        angle = i * angle_step
+        rotated_cutter = rotate(axis='z', degrees=angle)(cutter_moved)
+        # Restamos el diente
+        full_gear = difference(full_gear, rotated_cutter)
+        
+    return full_gear
+
+# --- 3. EJECUCIÓN PRINCIPAL ---
+
+if __name__ == '__main__':
+    print("⚙️ Iniciando Generador de Engranaje con Imagen...")
+
+    # Rutas de archivos
+    current_dir = os.path.dirname(__file__)
+    project_root = os.path.dirname(current_dir)
+    img_path = os.path.join(project_root, 'models', 'Star.png')
+    out_path = os.path.join(project_root, 'models', 'Star_Gear.stl')
+
+    try:
+        # A. Cargar Imagen
+        print(f"1. Leyendo imagen: {img_path}")
+        mask = load_image_as_mask(img_path)
+        
+        # B. Crear Sólido de la Imagen (La Estrella)
+        # Tamaño: 10x10, Grosor: 8 (para asegurar que corte bien)
+        star_3d = image_solid(mask, width=10, height=10, thickness=8)
+        
+        # C. Crear Engranaje
+        print("2. Generando geometría del engranaje...")
+        gear = create_simple_gear(radius=15, thickness=5, teeth=10)
+
+        # D. Combinar (Engranaje - Estrella)
+        # Movemos la estrella un poco hacia arriba si queremos que sea un grabado superficial,
+        # o la dejamos en el centro para que sea un agujero pasante.
+        print("3. Aplicando operación booleana (Grabado)...")
+        final_object = difference(gear, star_3d)
+
+        # E. Exportar
+        print(f"4. Exportando a STL (esto puede tardar unos segundos)...")
+        # Resolution 80 es un buen balance. Si sale pixelado, sube a 100-120.
+        export_stl(final_object, out_path, resolution=80)
+        
+        print(f"✅ ¡ÉXITO! Modelo guardado en: {out_path}")
+
+    except Exception as e:
+        print(f"❌ ERROR CRÍTICO: {e}")
+        print("Asegúrate de que 'Star.png' esté en la carpeta 'models' y tengas 'Pillow' instalado.")

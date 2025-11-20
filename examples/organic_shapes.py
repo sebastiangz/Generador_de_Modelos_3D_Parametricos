@@ -1,98 +1,86 @@
-"""
-gears.py
-
-Generador paramétrico de un engranaje simple.
-Demuestra:
-- Uso de primitivas (cylinder, box).
-- Composición de transformaciones (rotate, translate).
-- Operaciones CSG (difference, union).
-"""
-
-from src.geometry import cylinder, box
-from src.transforms import translate, rotate
-from src.csg import difference, union
-from toolz import pipe, compose
-from src.csg import Solid
+import os
+import sys
+import numpy as np
 import math
 
-def create_gear(
-    radius: float, 
-    height: float, 
-    teeth: int, 
-    tooth_width: float, 
-    tooth_depth: float
-) -> 'Solid':
-    """
-    Crea un engranaje usando diferencia booleana.
-    """
-    
-    # 1. Cilindro base del engranaje
-    base_solid = cylinder(radius=radius, height=height)
-    
-    # 2. El 'agujero' de corte para generar los dientes
-    # Usamos una caja lo suficientemente larga para cortar el radio + profundidad.
-    cutter_width = (radius + tooth_depth) * 2.0
-    cutter_height = height * 1.5 # Más alto que el engranaje para asegurar el corte
-    
-    # El diente se corta en el borde, así que el centro del cutter debe estar fuera del radio.
-    # Posición inicial: centro del cutter en X = radio + depth/2
-    initial_x_position = radius + (tooth_depth / 2.0)
-    
-    # El cutter es una caja del tamaño del espacio entre los dientes.
-    cutter_solid = box(width=tooth_width, height=cutter_height, depth=cutter_width)
-    
-    # La operación para trasladar el cutter a su posición inicial
-    initial_translation = translate(x=initial_x_position)
-    
-    # Lista para almacenar todos los 'cortadores' transformados
-    all_cutters = []
-    
-    angle_step = 360.0 / teeth
-    
-    for i in range(teeth):
-        angle = i * angle_step
-        
-        # Secuencia de transformación:
-        # 1. Trasladar el cutter a la posición inicial (fuera del radio)
-        # 2. Rotarlo por el ángulo del diente actual
-        
-        # compose(rotate, translate)
-        transform_fn = compose(
-            rotate(axis='z', degrees=angle),
-            initial_translation
-        )
-        
-        # Aplicar la composición al cutter y añadirlo a la lista
-        transformed_cutter = transform_fn(cutter_solid)
-        all_cutters.append(transformed_cutter)
-        
-    # 3. La operación final es la Diferencia (base - union de todos los cortes)
-    
-    # Reducir la lista de cortadores a un solo sólido grande (Union)
-    # Se usa pipe para una forma funcional de encadenar la reducción
-    cutters_union = pipe(
-        all_cutters[1:], 
-        lambda solids: union(all_cutters[0], solids[0]),
-        lambda result, next_solid: union(result, next_solid) # Simplificación: usar union_many si estuviera implementado
-    )
-    
-    # Retornar el engranaje final
-    return difference(base_solid, cutters_union)
+# Ajustar path para importar src
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-# --- USO ---
+from src.vectors import Vector3
+from src.curves import nurbs_curve
+from src.surfaces import surface_of_revolution
+from src.export import export_surface_stl
+
+def create_organic_vase_profile():
+    """
+    Define una curva NURBS que servirá como la silueta del florero.
+    Retorna una función que para un t (0 a 1) devuelve un Vector3.
+    """
+    # 1. PUNTOS DE CONTROL (La forma aproximada)
+    # Imaginamos el perfil en el plano XZ (X=Radio, Z=Altura)
+    control_points = [
+        Vector3(0, 0, 0),     # Centro de la base
+        Vector3(10, 0, 0),    # Borde de la base (plana)
+        Vector3(15, 0, 5),    # Curva suave hacia arriba
+        Vector3(8, 0, 15),    # Cintura estrecha
+        Vector3(12, 0, 25),   # Se ensancha de nuevo
+        Vector3(5, 0, 30)     # Boca del florero
+    ]
+
+    # 2. NUDOS (KNOTS)
+    # Controlan cómo fluye la curva. Para grado 3, necesitamos len(points) + grado + 1 nudos.
+    degree = 3
+    n_points = len(control_points)
+    # Vector de nudos "clamped" (empieza con 0s y termina con 1s para tocar los extremos)
+    knots = [0.0, 0.0, 0.0, 0.0, 0.33, 0.66, 1.0, 1.0, 1.0, 1.0]
+
+    # 3. PESOS (WEIGHTS)
+    # Si aumentamos un peso, la curva es "atraída" más fuerte hacia ese punto.
+    # Usamos 1.0 para estándar, pero variamos la cintura para acentuarla.
+    weights = [1.0, 1.0, 1.0, 2.0, 1.0, 1.0] 
+
+    # Creamos la función de la curva
+    return nurbs_curve(control_points, knots, weights, degree)
+
+def get_curve_2d_adapter(curve_3d_fn):
+    """
+    Adapta la función curva 3D para que sea compatible con surface_of_revolution.
+    surface_of_revolution espera: (u) -> (radio, altura)
+    """
+    def adapter(u):
+        vec = curve_3d_fn(u)
+        # Usamos X como radio y Z como altura
+        return (vec.x, vec.z)
+    return adapter
+
 if __name__ == '__main__':
-    from src.export import export_stl 
+    print("🏺 Generando Forma Orgánica (Florero NURBS)...")
+
+    # 1. Crear el perfil curvo
+    # Esto es matemática pura definiendo una silueta suave
+    print("1. Calculando curva NURBS...")
+    vase_curve = create_organic_vase_profile()
+
+    # 2. Convertir a función de revolución
+    # Adaptamos la curva para decir: "A tal avance (u), este es el radio y la altura"
+    profile_2d = get_curve_2d_adapter(vase_curve)
+
+    # 3. Crear la superficie matemática
+    # Rotamos ese perfil alrededor del eje Z
+    print("2. Generando superficie de revolución...")
+    vase_surface = surface_of_revolution(profile_2d, axis='z')
+
+    # 4. Exportar
+    # Aquí ocurre la magia: el exportador recorrerá u (perfil) y v (rotación)
+    # creando miles de triángulos para formar la malla suave.
+    output_path = os.path.join(os.path.dirname(__file__), '..', 'models', 'organic_vase.stl')
+    print(f"3. Exportando a {output_path}...")
     
-    gear_model = create_gear(
-        radius=10.0, 
-        height=5.0, 
-        teeth=16, 
-        tooth_width=1.5,
-        tooth_depth=2.0
+    export_surface_stl(
+        vase_surface, 
+        output_path, 
+        u_steps=50,  # Calidad vertical (más alto = curva más suave)
+        v_steps=60   # Calidad radial (más alto = círculo más perfecto)
     )
 
-    print("Generando engranaje...")
-    # La función de exportación se encargará del meshing (Marching Cubes)
-    # Asegúrate de que export_stl esté configurado para usar src.mesh
-    export_stl(gear_model, 'models/gear_final.stl', resolution=100)
-    print("Engranaje exportado a models/gear_final.stl")
+    print("✅ ¡Listo! Abre el archivo para ver las curvas suaves.")
