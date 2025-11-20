@@ -9,7 +9,7 @@ Demuestra:
 
 from src.vectors import Vector3
 from src.curves import nurbs_curve
-from src.surfaces import surface_of_revolution, mesh_from_surface
+from src.mesh import mesh_from_surface
 from src.curves import nurbs_curve, ParametricCurve # <-- AÑADIR ParametricCurve
 from src.surfaces import surface_of_revolution, Curve2D # <-- AÑADIR Curve2D
 import numpy as np
