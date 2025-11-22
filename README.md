@@ -406,6 +406,13 @@ pytest tests/ -k "benchmark"
 - **OpenSCAD CSG**: https://en.wikibooks.org/wiki/OpenSCAD_User_Manual
 - **Objetos 3D para impresoras**: https://www.thingiverse.com
 
+## 📚 Referencias de articulos de ACM DL DIGITAL LIBRARY
+
+- **Gradys Benigni, S. Z. (23 de mayo de 2012). ACM DL DIGITAL LIBREARY. Obtenido de Modelado con casos de uso recursivo: https://dl.acm.org/doi/10.1145/2261605.2261654
+- **Kelly Ding, P. H. (18 de febrero de 2025). ACM DL DIGITAL LIBRARY. Obtenido de Aprendiendo colaborativamente con Scratch: https://dl.acm.org/doi/10.1145/3641555.3705039
+- **Maikon Cismoky dos Santos, H. P. (05 de octubre de 2009). ACM DL DIGITAL LIBRARY. Obtenido de Una arquitectura para renderizar entornos virtuales web 3D en computadoras con potencia de procesamiento gráfico limitada: https://dl.acm.org/doi/10.1145/1858477.1858507
+
+
 ---
 
 ## 🏆 Criterios de Evaluación
@@ -436,20 +443,40 @@ pytest tests/ -k "benchmark"
 
 Proyecto académico - Universidad de Colima © 2025
 
-## Commits/Changes [Para representar las modificaciones posteriores se usara el marcador " / "]
--Actualizacion de README para ingresar datos de los autores (/Modificaciones extras en el README)
--Se agrega las carpetas con la estructura del proyecto
--Update geometry.py
--Update transforms.py (/ Se corrigió el error de sintaxis que estaba en la  línea 27  del np.sin(rad))
--Update vectors.py (Se añade la estructura de datos Vector3 utilizando @dataclass(frozen=True) para garantizar la       inmutabilidad./ Implementa suma, resta, producto punto, producto cruz y normalización./ Añade la clase inmutable Matrix4x4 para gestionar transformaciones 3D homogéneas. La clase utiliza un tuple interno (data) y delega los cálculos matemáticos complejos (multiplicación, inversa) a NumPy para mayor eficiencia y precisión.)
--Se añaden las funciones básicas para operar con las "cajas" (AABB)
--Update csg.py
--Operaciones CSG
--Corrección de codigo debido a un error de identación
--Agrega pytest a requirements.txt e ignora venv en .gitignore
--Se agregan 11 tests unitarios para el módulo 'csg' que cubren la lógica de operaciones booleanas y el manejo de límites. Se añade también el archivo 'pytest.ini' con la configuración 'pythonpath = .' para asegurar que pytest pueda localizar los módulos 'src' y ejecutar las pruebas correctamente.
--
--
--
--
--
+## 🚀 Avances Reales del Proyecto (Estado Actual)
+
+El proyecto ha evolucionado de una librería matemática a un **Generador de Activos 3D Procedural** completo, capaz de modelar, optimizar y exportar geometría para motores de videojuegos. A continuación se detallan los módulos finalizados:
+
+### 1. 🏭 Generación Procedural y Aplicación Final (`asset_forge.py`)
+Implementación de una CLI (Interfaz de Línea de Comandos) que utiliza algoritmos composibles para crear activos complejos:
+* **Vegetación Paramétrica:** Algoritmo iterativo para generar árboles "Low Poly" mediante el apilamiento y transformación funcional de conos y cilindros, permitiendo variaciones infinitas de altura y densidad.
+* **Modelado Hard-Surface:** Esculpido de *props* (como cajas de suministros Sci-Fi) utilizando sustracción booleana (CSG Difference) para crear detalles tecnológicos.
+* **Geometría Cristalina:** Generación de estructuras asimétricas mediante rotaciones compuestas.
+* **Sistema LOD (Level of Detail):** Selector dinámico de resolución que permite exportar versiones optimizadas del mismo modelo (Mobile, PC, Cinematic) ajustando la densidad del mallado.
+
+### 2. 📐 Núcleo Matemático Funcional (`src.vectors`, `src.matrix`)
+* **Inmutabilidad Garantizada:** Implementación de estructuras de datos `Vector3` y `Matrix4x4` utilizando `@dataclass(frozen=True)`. Esto elimina los efectos secundarios y facilita el razonamiento sobre el flujo de datos.
+* **Álgebra Lineal Pura:** Métodos puros para operaciones vectoriales (producto punto, cruz, normalización) y matriciales.
+* **Integración con NumPy:** Delegación de cálculos complejos (inversas, multiplicaciones masivas) a `numpy` para asegurar eficiencia y precisión numérica.
+
+### 3. 🛠️ Motor CSG Volumétrico (`src.csg`, `src.geometry`)
+* **Definición Implícita de Sólidos:** Los objetos no son mallas estáticas, sino **funciones evaluadoras** (`Callable[[Vector3], bool]`) que determinan matemáticamente la geometría.
+* **Primitivas Extendidas:** Implementación paramétrica de Cubos, Esferas, Cilindros, Conos, Toros (Donas) y Pirámides.
+* **Optimización con AABB:** Las operaciones booleanas (Unión, Intersección, Diferencia) integran *Bounding Boxes* para descartar cálculos costosos antes de evaluar la función de forma.
+
+### 4. 🔄 Sistema de Transformaciones de Orden Superior (`src.transforms`)
+* **Closures y Composición:** Las transformaciones (`translate`, `rotate`, `scale`, `shear`) no modifican los objetos directamente; retornan nuevas funciones que encapsulan la transformación, permitiendo la **composición matemática** de operaciones.
+* **Matemática Avanzada:** Soporte para rotación mediante **Cuaterniones** (evitando el *Gimbal Lock*) y reflexión sobre planos arbitrarios.
+
+### 5. 〰️ Curvas y Superficies Paramétricas (`src.curves`, `src.surfaces`)
+* **Splines Matemáticos:** Implementación de curvas de **Bézier Cúbicas**, **B-Splines** y **NURBS** (Non-Uniform Rational B-Splines) para trazos orgánicos precisos.
+* **Superficies de Revolución:** Generación de volúmenes 3D rotando perfiles 2D funcionales sobre un eje.
+
+### 6. 💾 Exportación y Mallado (`src.export`, `src.mesh`)
+* **Algoritmo Marching Cubes:** Conversión de las definiciones matemáticas implícitas a mallas poligonales explícitas (triángulos).
+* **Formatos de Salida:** Exportación compatible con la industria en **STL** (Binario/ASCII), **OBJ** (con soporte de materiales) y **PLY** (Nubes de Puntos).
+
+### 7. ✅ Calidad y Testing (`tests/`)
+* **Suite de Pruebas Exhaustiva:** Validación de la lógica mediante `pytest`.
+* **Mocking:** Uso de objetos simulados (*mocks*) para aislar y probar componentes matemáticos individualmente sin dependencias externas.
+* **Cobertura:** Tests unitarios para vectores, matrices, lógica booleana CSG y precisión de curvas paramétricas.
