@@ -1,5 +1,7 @@
 venv/
 models/
-examples/
+
 main.py
-architecture.cpython-311.pyc
+examples/
+*.pyc
+__pycache__/
