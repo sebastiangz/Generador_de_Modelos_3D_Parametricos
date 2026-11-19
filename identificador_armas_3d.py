@@ -1,3 +1,9 @@
+# ==============================================================================
+# 📐 ÁLGEBRA 3D esta es nuevo codigo del identificador
+# Nombre:Christian Alberto Gomez Cardona
+# ==============================================================================
+
+
 import os
 import sys
 import csv

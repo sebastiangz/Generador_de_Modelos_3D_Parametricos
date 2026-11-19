@@ -1,172 +1,147 @@
 """
-src.curves
-Define funciones para crear curvas paramétricas.
-Cumple con: Bézier, B-splines, NURBS.
+src.csg
+Implementación de Constructive Solid Geometry (CSG) funcional.
 """
 
-from typing import Callable, List
-import numpy as np
-# Importa tu clase Vector3 desde tu archivo
-from .vectors import Vector3
+from dataclasses import dataclass
+from typing import Callable, Tuple, List
+from .vectors import Vector3, Matrix4x4
 
-# Tipo para una curva paramétrica: (float) -> Vector3
-ParametricCurve = Callable[[float], Vector3]
+# Un Bounding Box (caja delimitadora) se define por dos vectores
+Bounds = Tuple[Vector3, Vector3]
 
-# --- Algoritmos Base para B-Spline / NURBS ---
+# --- Funciones auxiliares para Bounding Boxes ---
 
-def find_knot_span(n: int, p: int, u: float, U: np.ndarray) -> int:
+def combine_bounds(b1: Bounds, b2: Bounds) -> Bounds:
+    """Crea un Bounding Box que envuelve otros dos"""
+    min_v = Vector3(
+        min(b1[0].x, b2[0].x),
+        min(b1[0].y, b2[0].y),
+        min(b1[0].z, b2[0].z)
+    )
+    max_v = Vector3(
+        max(b1[1].x, b2[1].x),
+        max(b1[1].y, b2[1].y),
+        max(b1[1].z, b2[1].z)
+    )
+    return (min_v, max_v)
+
+def intersect_bounds(b1: Bounds, b2: Bounds) -> Bounds:
+    """Crea un Bounding Box de la intersección de otros dos"""
+    min_v = Vector3(
+        max(b1[0].x, b2[0].x),
+        max(b1[0].y, b2[0].y),
+        max(b1[0].z, b2[0].z)
+    )
+    max_v = Vector3(
+        min(b1[1].x, b2[1].x),
+        min(b1[1].y, b2[1].y),
+        min(b1[1].z, b2[1].z)
+    )
+    # Si no hay intersección, min > max
+    if min_v.x > max_v.x or min_v.y > max_v.y or min_v.z > max_v.z:
+        return (Vector3(0,0,0), Vector3(0,0,0))
+    return (min_v, max_v)
+
+def transform_bounds(bounds: Bounds, matrix: Matrix4x4) -> Bounds:
+    """Transforma un Bounding Box y calcula el nuevo AABB que lo envuelve"""
+    b_min, b_max = bounds
+    # Los 8 vértices del Bounding Box
+    corners = [
+        Vector3(b_min.x, b_min.y, b_min.z),
+        Vector3(b_max.x, b_min.y, b_min.z),
+        Vector3(b_min.x, b_max.y, b_min.z),
+        Vector3(b_min.x, b_min.y, b_max.z),
+        Vector3(b_max.x, b_max.y, b_min.z),
+        Vector3(b_min.x, b_max.y, b_max.z),
+        Vector3(b_max.x, b_min.y, b_max.z),
+        Vector3(b_max.x, b_max.y, b_max.z),
+    ]
+    
+    transformed_corners = [matrix.apply_to_vector(c) for c in corners]
+    
+    new_min = Vector3(
+        min(c.x for c in transformed_corners),
+        min(c.y for c in transformed_corners),
+        min(c.z for c in transformed_corners)
+    )
+    new_max = Vector3(
+        max(c.x for c in transformed_corners),
+        max(c.y for c in transformed_corners),
+        max(c.z for c in transformed_corners)
+    )
+    return (new_min, new_max)
+
+
+@dataclass(frozen=True)
+class Solid:
     """
-    Encuentra el índice del 'span' (intervalo) de nodos para el parámetro u.
-    n: número de puntos de control - 1
-    p: grado de la curva
-    u: parámetro (0 a 1)
-    U: vector de nodos
+    Representación funcional e inmutable de un sólido 3D.
+    
+    Atributos:
+        contains (Callable): Una función (Vector3) -> bool.
+                             Retorna True si el punto está dentro del sólido.
+        bounds (Bounds): Una tupla (Vector3_min, Vector3_max)
+                         que define la caja delimitadora del sólido.
     """
-    # Búsqueda binaria para encontrar el span
-    span = np.searchsorted(U, u, side='right') - 1
+    contains: Callable[[Vector3], bool]
+    bounds: Bounds
 
-    # Asegurarse de que el span esté dentro del rango válido
-    return max(p, min(span, n))
+    def transform(self, matrix: Matrix4x4) -> 'Solid':
+        """
+        Aplica una transformación matricial al sólido.
+        Retorna un *nuevo* Sólido transformado.
+        
+        Esta implementación difiere del snippet del README para
+        correctamente transformar los 'bounds' (límites).
+        """
+        try:
+            # La inversa es necesaria para mapear el punto de consulta
+            # de vuelta al espacio original del objeto.
+            inv_matrix = matrix.inverse()
+        except ValueError:
+            # Si la matriz no es invertible (ej. escala 0),
+            # el sólido colapsa a nada.
+            return Solid(lambda p: False, (Vector3(0,0,0), Vector3(0,0,0)))
 
-def b_spline_basis(i: int, p: int, u: float, U: np.ndarray) -> List[float]:
-    """
-    Calcula las funciones base B-spline no nulas (algoritmo de Cox-de Boor).
-    i: índice del span (de find_knot_span)
-    p: grado
-    u: parámetro
-    U: vector de nodos
-    Retorna una lista de p+1 valores de base.
-    """
-    N = np.zeros(p + 1)
-    N[0] = 1.0
+        # Función 'contains' del nuevo sólido:
+        def new_contains(point: Vector3) -> bool:
+            # Transformar el punto de consulta al espacio original
+            original_point = inv_matrix.apply_to_vector(point)
+            # Comprobar si estaba contenido en el sólido original
+            return self.contains(original_point)
+            
+        # Calcula el nuevo bounding box (AABB)
+        new_bounds = transform_bounds(self.bounds, matrix)
+            
+        return Solid(new_contains, new_bounds)
+    
+# --- Operaciones CSG (Funciones Puras) ---
 
-    left = np.zeros(p + 1)
-    right = np.zeros(p + 1)
+def union(solid1: Solid, solid2: Solid) -> Solid:
+    """Unión booleana de dos sólidos"""
+    def contains(point: Vector3) -> bool:
+        # Un punto está en la unión si está en CUALQUIERA de los sólidos
+        return solid1.contains(point) or solid2.contains(point)
 
-    for j in range(1, p + 1):
-        left[j] = u - U[i + 1 - j]
-        right[j] = U[i + j] - u
-        saved = 0.0
+    new_bounds = combine_bounds(solid1.bounds, solid2.bounds)
+    return Solid(contains, new_bounds)
 
-        for r in range(j):
-            temp = N[r] / (right[r + 1] + left[j - r])
-            N[r] = saved + right[r + 1] * temp
-            saved = left[j - r] * temp
+def intersection(solid1: Solid, solid2: Solid) -> Solid:
+    """Intersección booleana de dos sólidos"""
+    def contains(point: Vector3) -> bool:
+        # Un punto está en la intersección si está en AMBOS sólidos
+        return solid1.contains(point) and solid2.contains(point)
 
-        N[j] = saved
+    new_bounds = intersect_bounds(solid1.bounds, solid2.bounds)
+    return Solid(contains, new_bounds)
 
-    return N
+def difference(solid1: Solid, solid2: Solid) -> Solid:
+    """Diferencia booleana (solid1 - solid2)"""
+    def contains(point: Vector3) -> bool:
+        # Un punto está en la diferencia si está en el primero
+        # Y NO en el segundo.
+        return solid1.contains(point) and not solid2.contains(point)
 
-# --- Constructores de Curvas ---
-
-def cubic_bezier(
-    p0: Vector3,
-    p1: Vector3, # Punto de control 1
-    p2: Vector3, # Punto de control 2
-    p3: Vector3
-) -> ParametricCurve:
-    """
-    ✅ Crea una curva de Bézier cúbica.
-    (Basado en tu código original, compatible con tu Vector3)
-    `t` debe estar en el rango [0, 1].
-    """
-    def curve(t: float) -> Vector3:
-        if not (0 <= t <= 1):
-            t = max(0, min(1, t))
-
-        omt = 1.0 - t
-        omt2 = omt * omt
-        omt3 = omt2 * omt
-        t2 = t * t
-        t3 = t2 * t
-
-        # Fórmula de Bernstein. Esto funciona porque tu Vector3
-        # define __mul__ (para vector * escalar) y __add__
-        return (
-            (p0 * omt3) +
-            (p1 * (3 * omt2 * t)) +
-            (p2 * (3 * omt * t2)) +
-            (p3 * t3)
-        )
-    return curve
-
-def b_spline_curve(
-    controls: List[Vector3],
-    knots: List[float],
-    degree: int
-) -> ParametricCurve:
-    """
-    ✅ Crea una curva B-spline.
-    """
-    n = len(controls) - 1
-    p = degree
-    U = np.array(knots)
-
-    def curve(t: float) -> Vector3:
-        # Asegurar que t esté en el rango válido de los nodos
-        t_min = U[p]
-        t_max = U[n + 1]
-        t = max(t_min, min(t_max, t))
-
-        # Encontrar el span de nodos y calcular las bases
-        span_i = find_knot_span(n, p, t, U)
-        basis = b_spline_basis(span_i, p, t, U)
-
-        # Calcular el punto de la curva
-        # Inicia con un Vector3 cero
-        C = Vector3(0, 0, 0)
-        for k in range(p + 1):
-            # C += (Vector3 * float)
-            # Esto es C = C + (Vector3 * float), que funciona
-            # perfectamente con tu clase inmutable.
-            C += controls[span_i - p + k] * basis[k]
-
-        return C
-
-    return curve
-
-def nurbs_curve(
-    controls: List[Vector3],
-    knots: List[float],
-    weights: List[float],
-    degree: int
-) -> ParametricCurve:
-    """
-    ✅ Crea una curva NURBS básica (Non-Uniform Rational B-Spline).
-    """
-    n = len(controls) - 1
-    p = degree
-    U = np.array(knots)
-
-    if len(weights) != len(controls):
-        raise ValueError("Debe haber un peso (weight) por cada punto de control")
-
-    def curve(t: float) -> Vector3:
-        # Asegurar que t esté en el rango válido de los nodos
-        t_min = U[p]
-        t_max = U[n + 1]
-        t = max(t_min, min(t_max, t))
-
-        # Encontrar el span de nodos y calcular las bases
-        span_i = find_knot_span(n, p, t, U)
-        basis = b_spline_basis(span_i, p, t, U)
-
-        # Calcular el punto de la curva (forma racional)
-        numerator = Vector3(0, 0, 0)
-        denominator = 0.0
-
-        for k in range(p + 1):
-            idx = span_i - p + k
-            weighted_basis = basis[k] * weights[idx]
-
-            # numerator = numerator + (Vector3 * float)
-            numerator += controls[idx] * weighted_basis
-            denominator += weighted_basis
-
-        if denominator == 0:
-            return Vector3(0, 0, 0)
-
-        # return Vector3 / float (usa __truediv__)
-        return numerator / denominator
-
-    return curve
+    # El Bounding Box resultante es, por definición, el de solid1
+    return Solid(contains, solid1.bounds)
