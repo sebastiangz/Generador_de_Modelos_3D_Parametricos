@@ -1,7 +1,5 @@
 venv/
-models/
-
-main.py
-examples/
+.venv/
 *.pyc
 __pycache__/
+.DS_Store

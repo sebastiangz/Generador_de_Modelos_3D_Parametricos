@@ -4,8 +4,6 @@ from algebra_lineal import Malla, Triangulo, Vertice, escalar_vector, sumar_vect
 
 SuperficieParametrica = Callable[[float, float], Vertice]
 
-# --- Curvas Paramétricas Puras ---
-
 def curva_bezier_cubica(
     p0: Vertice, p1: Vertice, p2: Vertice, p3: Vertice
 ) -> Callable[[float], Vertice]:
@@ -19,7 +17,6 @@ def curva_bezier_cubica(
         return sumar_vectores(sumar_vectores(b0, b1), sumar_vectores(b2, b3))
     return evaluar
 
-# --- Teselación (Discretización Pura a Malla de Triángulos) ---
 
 def teselar_superficie(
     superficie: SuperficieParametrica, pasos_u: int = 24, pasos_v: int = 24
@@ -28,13 +25,11 @@ def teselar_superficie(
     us = tuple(i / pasos_u for i in range(pasos_u + 1))
     vs = tuple(j / pasos_v for j in range(pasos_v + 1))
 
-    # Evaluar rejilla de vértices (u, v)
     rejilla = tuple(
         tuple(superficie(u, v) for v in vs)
         for u in us
     )
 
-    # Dividir cada celda cuadrangular en 2 triángulos
     def celda_a_triangulos(i: int, j: int) -> tuple[Triangulo, Triangulo]:
         p00 = rejilla[i][j]
         p10 = rejilla[i + 1][j]
@@ -49,7 +44,6 @@ def teselar_superficie(
     )
     return tuple(tri for par in pares_triangulos for tri in par)
 
-# --- Modelos Paramétricos Característicos de Armas ---
 
 def generar_canon_parametrico(radio: float = 0.08, longitud: float = 1.6) -> Malla:
     """Genera la malla 3D de un cañón cilíndrico alineado en el eje Z."""
@@ -76,7 +70,6 @@ def generar_empunadura_parametrica(
     def s_empunadura(u: float, v: float) -> Vertice:
         theta = 2.0 * math.pi * u
         cx, cy, cz = espina(v)
-        # Ligero estrechamiento en la parte media del agarre
         factor_agarre = 1.0 - 0.15 * math.sin(math.pi * v)
         x = cx + (grosor * factor_agarre) * math.cos(theta)
         y = cy
@@ -90,12 +83,10 @@ def generar_hoja_punzocortante(
 ) -> Malla:
     """Genera la hoja de un arma punzocortante con filo doble y punta convergente."""
     def s_hoja(u: float, v: float) -> Vertice:
-        # v in [0, 1] recorre desde la base hasta la punta
         perfil_punta = math.sqrt(max(0.0, 1.0 - (v ** 2.2)))
         ancho_actual = ancho_base * perfil_punta
         grosor_actual = grosor_lomo * perfil_punta
 
-        # u in [0, 1] recorre el perímetro romboidal de la sección transversal (filo-lomo-filo)
         angulo = 2.0 * math.pi * u
         x = (grosor_actual / 2.0) * math.sin(angulo)
         y = (ancho_actual / 2.0) * math.cos(angulo)

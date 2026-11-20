@@ -1,5 +1,17 @@
-# Este proyecto está implementado 100% con la librería estándar de Python (>= 3.10)
-# (math, struct, pathlib, functools, typing) para garantizar funciones puras sin dependencias externas.
+# ==============================================================================
+# Requisitos del Entorno - Detector de Armas con Modelo 3D
+# ==============================================================================
+# Versión recomendada: Python >= 3.10
+#
+# Este proyecto utiliza únicamente la librería estándar de Python:
+#   - math       (operaciones trigonométricas, normas y cálculo geométrico)
+#   - struct     (lectura y escritura binaria de mallas 3D en formato STL)
+#   - pathlib    (gestión inmutable de rutas de entrada, assets y salida)
+#   - functools  (composición de funciones puras y programación de orden superior)
+#   - typing     (tipado estático para estructuras de datos inmutables)
+#
+# No requiere instalar librerías externas mediante pip para su ejecución principal.
+# ==============================================================================
 
 # Opcional: para ejecutar pruebas unitarias de inmutabilidad y geometría
 pytest>=8.0.0

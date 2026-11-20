@@ -14,7 +14,6 @@ from algebra_lineal import (
 
 Transformacion = Callable[[Vertice], Vertice]
 
-# --- Composición Funcional ---
 
 def compose(*funciones: Transformacion) -> Transformacion:
     """Combina múltiples funciones f(g(h(x))) en una sola función pura."""
@@ -27,8 +26,6 @@ def compose(*funciones: Transformacion) -> Transformacion:
 def componer_matrices(*matrices: Matriz4x4) -> Matriz4x4:
     """Combina una secuencia de matrices 4x4 mediante multiplicación asociativa."""
     return reduce(multiplicar_matrices, matrices, matriz_identidad())
-
-# --- Matrices Afines 4x4 ---
 
 def matriz_traslacion(tx: float, ty: float, tz: float) -> Matriz4x4:
     return (
@@ -73,8 +70,6 @@ def matriz_rotacion_z(radianes: float) -> Matriz4x4:
         (0.0, 0.0, 0.0, 1.0),
     )
 
-# --- Aplicación a Mallas Inmutables ---
-
 def aplicar_transformacion_malla(malla: Malla, fn: Transformacion) -> Malla:
     """Aplica una transformación pura a todos los vértices de una malla."""
     return tuple(
@@ -89,10 +84,8 @@ def _matriz_alineacion_eje_principal(malla: Malla) -> Matriz4x4:
     """
     dx, dy, dz = calcular_dimensiones(malla)
     if dx >= dy and dx >= dz:
-        # El eje más largo es X -> rotar 90° en Y para llevarlo a Z
         return matriz_rotacion_y(math.pi / 2.0)
     if dy >= dx and dy >= dz:
-        # El eje más largo es Y -> rotar -90° en X para llevarlo a Z
         return matriz_rotacion_x(-math.pi / 2.0)
     return matriz_identidad()
 
@@ -111,7 +104,6 @@ def normalizar_malla(malla: Malla) -> Malla:
     cy = (v_min[1] + v_max[1]) / 2.0
     cz = (v_min[2] + v_max[2]) / 2.0
 
-    # Paso 1 y 2: Centrar y alinear orientación
     m_centrar = matriz_traslacion(-cx, -cy, -cz)
     m_alinear = _matriz_alineacion_eje_principal(malla)
     m_pre = componer_matrices(m_alinear, m_centrar)
@@ -120,10 +112,9 @@ def normalizar_malla(malla: Malla) -> Malla:
         malla, lambda v: aplicar_matriz_a_vertice(m_pre, v)
     )
 
-    # Paso 3: Escalar uniformemente por su dimensión máxima para preservar proporciones
     dims = calcular_dimensiones(malla_alineada)
     max_dim = max(dims) if max(dims) > 0.0 else 1.0
-    factor = 2.0 / max_dim  # Rango total de 2.0 (de -1.0 a 1.0)
+    factor = 2.0 / max_dim  
 
     fn_escalar = lambda v: aplicar_matriz_a_vertice(
         matriz_escalado(factor, factor, factor), v

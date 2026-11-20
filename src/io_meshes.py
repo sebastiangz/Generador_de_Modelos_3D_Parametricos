@@ -2,8 +2,6 @@ import struct
 from pathlib import Path
 from algebra_lineal import Malla, Triangulo, Vertice, calcular_normal_triangulo
 
-# --- Lectura de STL (Binario y ASCII) ---
-
 def _es_stl_binario(datos: bytes) -> bool:
     """Determina si el archivo STL es binario verificando su tamaño exacto."""
     if len(datos) < 84:
@@ -18,7 +16,6 @@ def _parsear_stl_binario(datos: bytes) -> Malla:
     
     def leer_triangulo(indice: int) -> Triangulo:
         offset = 84 + (indice * 50)
-        # Ignoramos los primeros 12 bytes (normal) y leemos 9 floats (3 vértices)
         coords = struct.unpack("<9f", datos[offset + 12 : offset + 48])
         return (
             (coords[0], coords[1], coords[2]),
@@ -50,8 +47,6 @@ def cargar_stl(ruta: Path) -> Malla:
     if _es_stl_binario(datos):
         return _parsear_stl_binario(datos)
     return _parsear_stl_ascii(datos.decode("utf-8", errors="ignore"))
-
-# --- Exportación a STL (ASCII) y OBJ ---
 
 def _formatear_triangulo_stl(tri: Triangulo) -> str:
     nx, ny, nz = calcular_normal_triangulo(tri)

@@ -9,11 +9,7 @@ from algebra_lineal import (
     restar_vectores,
 )
 
-# Un sólido CSG en programación funcional se representa como una función pura:
-# f(x, y, z) -> distancia con signo (negativa = dentro del sólido, positiva = fuera)
 SDF = Callable[[Vertice], float]
-
-# --- Operaciones Booleanas CSG Puras ---
 
 def union(solido_a: SDF, solido_b: SDF) -> SDF:
     """Devuelve un nuevo sólido CSG que representa la unión A ∪ B."""
@@ -26,8 +22,6 @@ def intersection(solido_a: SDF, solido_b: SDF) -> SDF:
 def difference(solido_a: SDF, solido_b: SDF) -> SDF:
     """Devuelve un nuevo sólido CSG que representa la diferencia A - B."""
     return lambda p: max(solido_a(p), -solido_b(p))
-
-# --- Primitivas SDF Analíticas (para plantillas paramétricas) ---
 
 def sdf_caja(semi_dimensiones: Vertice) -> SDF:
     """SDF exacto de una caja centrada en el origen."""
@@ -51,8 +45,6 @@ def sdf_cilindro_z(radio: float, semi_largo: float) -> SDF:
         return fuera + dentro
     return evaluar
 
-# --- Conversión de Malla 3D a Sólido CSG ---
-
 def malla_a_sdf(malla: Malla, resolucion_grid: int = 16) -> SDF:
     """
     Convierte una malla normalizada en [-1, 1]^3 en una función SDF pura
@@ -61,8 +53,7 @@ def malla_a_sdf(malla: Malla, resolucion_grid: int = 16) -> SDF:
     vertices = extraer_vertices(malla)
     if not vertices:
         return lambda p: 1.0
-
-    # Submuestreo determinista si la malla tiene miles de vértices para mantener velocidad
+    
     paso = max(1, len(vertices) // 800)
     muestra_vertices = vertices[::paso]
     radio_influencia = 2.2 / resolucion_grid
@@ -77,7 +68,6 @@ def malla_a_sdf(malla: Malla, resolucion_grid: int = 16) -> SDF:
     )
 
     def evaluar(p: Vertice) -> float:
-        # Si está fuera del Bounding Box, devolvemos distancia positiva inmediata
         dist_caja = caja_envolvente(p)
         if dist_caja > radio_influencia:
             return dist_caja
@@ -85,8 +75,6 @@ def malla_a_sdf(malla: Malla, resolucion_grid: int = 16) -> SDF:
         return dist_min - radio_influencia
 
     return evaluar
-
-# --- Evaluación Volumétrica CSG ---
 
 def _generar_rejilla_puntos(resolucion: int = 14) -> tuple[Vertice, ...]:
     """Genera una nube de puntos determinista en el espacio normalizado [-1, 1]^3."""

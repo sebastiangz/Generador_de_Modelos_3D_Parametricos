@@ -12,7 +12,6 @@ Matriz4x4 = tuple[
     tuple[float, float, float, float],
 ]
 
-# --- Operaciones con Vectores 3D ---
 
 def sumar_vectores(u: Vertice, v: Vertice) -> Vertice:
     return (u[0] + v[0], u[1] + v[1], u[2] + v[2])
@@ -47,8 +46,6 @@ def calcular_normal_triangulo(tri: Triangulo) -> Vertice:
     arista2 = restar_vectores(v3, v1)
     return normalizar_vector(producto_cruz(arista1, arista2))
 
-# --- Operaciones Matriciales 4x4 (Coordenadas Homogéneas) ---
-
 def matriz_identidad() -> Matriz4x4:
     return (
         (1.0, 0.0, 0.0, 0.0),
@@ -71,8 +68,6 @@ def aplicar_matriz_a_vertice(m: Matriz4x4, v: Vertice) -> Vertice:
     res = tuple(sum(fila[i] * vh[i] for i in range(4)) for fila in m)
     w = res[3] if res[3] != 0.0 else 1.0
     return (res[0] / w, res[1] / w, res[2] / w)
-
-# --- Propiedades Espaciales de la Malla ---
 
 def extraer_vertices(malla: Malla) -> tuple[Vertice, ...]:
     """Aplana una malla de triángulos en una secuencia de vértices."""

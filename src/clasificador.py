@@ -29,7 +29,6 @@ def similitud_proporciones(malla_a: Malla, malla_b: Malla) -> float:
     distancia_euclidiana = math.sqrt(
         sum((a - b) ** 2 for a, b in zip(pa, pb))
     )
-    # La distancia máxima posible en [0, 1]^3 es sqrt(3) ≈ 1.732
     return max(0.0, 1.0 - (distancia_euclidiana / math.sqrt(3.0)))
 
 def construir_plantilla_parametrica(tipo_arma: str) -> Malla:
