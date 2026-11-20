@@ -7,10 +7,14 @@
 
 Este programa analiza modelos tridimensionales en formatos **`.STL`** (binario o ASCII) y **`.OBJ`** para extraer su geometría básica y clasificar el objeto dentro de cuatro categorías predefinidas:
 
-- Pistola Táctica (Tipo M1911)
-- Espada Ornamental / Fantasía
+- Pistola Táctica/corta
+- Arma/larga
 - Misil / Proyectil Guiado
-- Rifle Pesado / Lanzagranadas Sci-Fi
+- Revolver/corta
+- Navaja/Arma blanca
+- kunai/Arma blanca
+- Tiro/Balas 
+
 
 ## ¿Cómo funciona?
 
