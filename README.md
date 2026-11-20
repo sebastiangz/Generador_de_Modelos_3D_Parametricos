@@ -7,7 +7,7 @@ Sistema funcional para la detección de armas y su representación/análisis en 
 Universidad de Colima - Ingeniería en Computación Inteligente
 Materia: Programación Funcional
 Profesor: Gonzalez Zepeda Sebastian
-Semestre: Agosto 2025 - Enero 2026
+Semestre: Agosto 2026 - Enero 2027
 ---
 
 ## 🎯 Objetivos
@@ -22,8 +22,27 @@ Semestre: Agosto 2025 - Enero 2026
 
 ## 📂 Estructura del Proyecto
 
-
-
+```text
+Generador_de_Modelos_3D_Parametricos/
+├── 3D_assets/                    # Modelos 3D de referencia por categoría (.stl)
+│   ├── armas_corta.stl           # Plantilla de arma corta
+│   ├── armas_largas.stl          # Plantilla de arma larga
+│   ├── Misil.stl                 # Plantilla de proyectil/misil
+│   └── punzocortantes.stl        # Plantilla de objeto punzocortante
+├── input_analizar/               # Carpeta de entrada para el modelo 3D a evaluar
+│   └── objeto_desconocido.stl    # Archivo de prueba sin clasificar
+├── output_clasificados/          # Salida con mallas normalizadas y etiquetadas (.stl / .obj)
+├── src/                          # Código fuente bajo el paradigma de Programación Funcional
+│   ├── algebra_lineal.py         # Estructuras inmutables y operaciones vectoriales/matriciales 4x4
+│   ├── clasificador.py           # Evaluación de similitud espacial (Bounding Box) y volumétrica (CSG)
+│   ├── csg.py                    # Operaciones booleanas 3D puras (union, intersection, difference) con SDF
+│   ├── geometria_parametrica.py  # Curvas de Bézier y superficies paramétricas (cañones, empuñaduras, hojas)
+│   ├── io_meshes.py              # Lectura pura de STL (ASCII/binario) y exportación a STL y OBJ
+│   ├── main.py                   # Orquestador y pipeline funcional de ejecución
+│   └── transformaciones.py       # Composición de funciones (compose) y normalización de orientación/escala
+├── .gitignore                    # Exclusión de archivos temporales (__pycache__, etc.)
+├── README.md                     # Documentación general del proyecto
+└── requirements.txt              # Dependencias del entorno (librería estándar de Python)
 
 ## 📚 Meterial 
 

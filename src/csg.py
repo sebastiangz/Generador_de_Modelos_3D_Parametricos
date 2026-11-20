@@ -1,147 +1,119 @@
-"""
-src.csg
-Implementación de Constructive Solid Geometry (CSG) funcional.
-"""
+import math
+from typing import Callable
+from algebra_lineal import (
+    Malla,
+    Vertice,
+    calcular_bounding_box,
+    extraer_vertices,
+    norma,
+    restar_vectores,
+)
 
-from dataclasses import dataclass
-from typing import Callable, Tuple, List
-from .vectors import Vector3, Matrix4x4
+# Un sólido CSG en programación funcional se representa como una función pura:
+# f(x, y, z) -> distancia con signo (negativa = dentro del sólido, positiva = fuera)
+SDF = Callable[[Vertice], float]
 
-# Un Bounding Box (caja delimitadora) se define por dos vectores
-Bounds = Tuple[Vector3, Vector3]
+# --- Operaciones Booleanas CSG Puras ---
 
-# --- Funciones auxiliares para Bounding Boxes ---
+def union(solido_a: SDF, solido_b: SDF) -> SDF:
+    """Devuelve un nuevo sólido CSG que representa la unión A ∪ B."""
+    return lambda p: min(solido_a(p), solido_b(p))
 
-def combine_bounds(b1: Bounds, b2: Bounds) -> Bounds:
-    """Crea un Bounding Box que envuelve otros dos"""
-    min_v = Vector3(
-        min(b1[0].x, b2[0].x),
-        min(b1[0].y, b2[0].y),
-        min(b1[0].z, b2[0].z)
-    )
-    max_v = Vector3(
-        max(b1[1].x, b2[1].x),
-        max(b1[1].y, b2[1].y),
-        max(b1[1].z, b2[1].z)
-    )
-    return (min_v, max_v)
+def intersection(solido_a: SDF, solido_b: SDF) -> SDF:
+    """Devuelve un nuevo sólido CSG que representa la intersección A ∩ B."""
+    return lambda p: max(solido_a(p), solido_b(p))
 
-def intersect_bounds(b1: Bounds, b2: Bounds) -> Bounds:
-    """Crea un Bounding Box de la intersección de otros dos"""
-    min_v = Vector3(
-        max(b1[0].x, b2[0].x),
-        max(b1[0].y, b2[0].y),
-        max(b1[0].z, b2[0].z)
-    )
-    max_v = Vector3(
-        min(b1[1].x, b2[1].x),
-        min(b1[1].y, b2[1].y),
-        min(b1[1].z, b2[1].z)
-    )
-    # Si no hay intersección, min > max
-    if min_v.x > max_v.x or min_v.y > max_v.y or min_v.z > max_v.z:
-        return (Vector3(0,0,0), Vector3(0,0,0))
-    return (min_v, max_v)
+def difference(solido_a: SDF, solido_b: SDF) -> SDF:
+    """Devuelve un nuevo sólido CSG que representa la diferencia A - B."""
+    return lambda p: max(solido_a(p), -solido_b(p))
 
-def transform_bounds(bounds: Bounds, matrix: Matrix4x4) -> Bounds:
-    """Transforma un Bounding Box y calcula el nuevo AABB que lo envuelve"""
-    b_min, b_max = bounds
-    # Los 8 vértices del Bounding Box
-    corners = [
-        Vector3(b_min.x, b_min.y, b_min.z),
-        Vector3(b_max.x, b_min.y, b_min.z),
-        Vector3(b_min.x, b_max.y, b_min.z),
-        Vector3(b_min.x, b_min.y, b_max.z),
-        Vector3(b_max.x, b_max.y, b_min.z),
-        Vector3(b_min.x, b_max.y, b_max.z),
-        Vector3(b_max.x, b_min.y, b_max.z),
-        Vector3(b_max.x, b_max.y, b_max.z),
-    ]
-    
-    transformed_corners = [matrix.apply_to_vector(c) for c in corners]
-    
-    new_min = Vector3(
-        min(c.x for c in transformed_corners),
-        min(c.y for c in transformed_corners),
-        min(c.z for c in transformed_corners)
-    )
-    new_max = Vector3(
-        max(c.x for c in transformed_corners),
-        max(c.y for c in transformed_corners),
-        max(c.z for c in transformed_corners)
-    )
-    return (new_min, new_max)
+# --- Primitivas SDF Analíticas (para plantillas paramétricas) ---
 
+def sdf_caja(semi_dimensiones: Vertice) -> SDF:
+    """SDF exacto de una caja centrada en el origen."""
+    bx, by, bz = semi_dimensiones
+    def evaluar(p: Vertice) -> float:
+        qx = abs(p[0]) - bx
+        qy = abs(p[1]) - by
+        qz = abs(p[2]) - bz
+        fuera = norma((max(qx, 0.0), max(qy, 0.0), max(qz, 0.0)))
+        dentro = min(max(qx, max(qy, qz)), 0.0)
+        return fuera + dentro
+    return evaluar
 
-@dataclass(frozen=True)
-class Solid:
+def sdf_cilindro_z(radio: float, semi_largo: float) -> SDF:
+    """SDF exacto de un cilindro alineado con el eje Z."""
+    def evaluar(p: Vertice) -> float:
+        dx = math.hypot(p[0], p[1]) - radio
+        dz = abs(p[2]) - semi_largo
+        fuera = math.hypot(max(dx, 0.0), max(dz, 0.0))
+        dentro = min(max(dx, dz), 0.0)
+        return fuera + dentro
+    return evaluar
+
+# --- Conversión de Malla 3D a Sólido CSG ---
+
+def malla_a_sdf(malla: Malla, resolucion_grid: int = 16) -> SDF:
     """
-    Representación funcional e inmutable de un sólido 3D.
-    
-    Atributos:
-        contains (Callable): Una función (Vector3) -> bool.
-                             Retorna True si el punto está dentro del sólido.
-        bounds (Bounds): Una tupla (Vector3_min, Vector3_max)
-                         que define la caja delimitadora del sólido.
+    Convierte una malla normalizada en [-1, 1]^3 en una función SDF pura
+    mediante voxelización espacial por proximidad a los vértices/superficie.
     """
-    contains: Callable[[Vector3], bool]
-    bounds: Bounds
+    vertices = extraer_vertices(malla)
+    if not vertices:
+        return lambda p: 1.0
 
-    def transform(self, matrix: Matrix4x4) -> 'Solid':
-        """
-        Aplica una transformación matricial al sólido.
-        Retorna un *nuevo* Sólido transformado.
-        
-        Esta implementación difiere del snippet del README para
-        correctamente transformar los 'bounds' (límites).
-        """
-        try:
-            # La inversa es necesaria para mapear el punto de consulta
-            # de vuelta al espacio original del objeto.
-            inv_matrix = matrix.inverse()
-        except ValueError:
-            # Si la matriz no es invertible (ej. escala 0),
-            # el sólido colapsa a nada.
-            return Solid(lambda p: False, (Vector3(0,0,0), Vector3(0,0,0)))
+    # Submuestreo determinista si la malla tiene miles de vértices para mantener velocidad
+    paso = max(1, len(vertices) // 800)
+    muestra_vertices = vertices[::paso]
+    radio_influencia = 2.2 / resolucion_grid
 
-        # Función 'contains' del nuevo sólido:
-        def new_contains(point: Vector3) -> bool:
-            # Transformar el punto de consulta al espacio original
-            original_point = inv_matrix.apply_to_vector(point)
-            # Comprobar si estaba contenido en el sólido original
-            return self.contains(original_point)
-            
-        # Calcula el nuevo bounding box (AABB)
-        new_bounds = transform_bounds(self.bounds, matrix)
-            
-        return Solid(new_contains, new_bounds)
-    
-# --- Operaciones CSG (Funciones Puras) ---
+    v_min, v_max = calcular_bounding_box(malla)
+    caja_envolvente = sdf_caja(
+        (
+            (v_max[0] - v_min[0]) / 2.0,
+            (v_max[1] - v_min[1]) / 2.0,
+            (v_max[2] - v_min[2]) / 2.0,
+        )
+    )
 
-def union(solid1: Solid, solid2: Solid) -> Solid:
-    """Unión booleana de dos sólidos"""
-    def contains(point: Vector3) -> bool:
-        # Un punto está en la unión si está en CUALQUIERA de los sólidos
-        return solid1.contains(point) or solid2.contains(point)
+    def evaluar(p: Vertice) -> float:
+        # Si está fuera del Bounding Box, devolvemos distancia positiva inmediata
+        dist_caja = caja_envolvente(p)
+        if dist_caja > radio_influencia:
+            return dist_caja
+        dist_min = min(norma(restar_vectores(p, v)) for v in muestra_vertices)
+        return dist_min - radio_influencia
 
-    new_bounds = combine_bounds(solid1.bounds, solid2.bounds)
-    return Solid(contains, new_bounds)
+    return evaluar
 
-def intersection(solid1: Solid, solid2: Solid) -> Solid:
-    """Intersección booleana de dos sólidos"""
-    def contains(point: Vector3) -> bool:
-        # Un punto está en la intersección si está en AMBOS sólidos
-        return solid1.contains(point) and solid2.contains(point)
+# --- Evaluación Volumétrica CSG ---
 
-    new_bounds = intersect_bounds(solid1.bounds, solid2.bounds)
-    return Solid(contains, new_bounds)
+def _generar_rejilla_puntos(resolucion: int = 14) -> tuple[Vertice, ...]:
+    """Genera una nube de puntos determinista en el espacio normalizado [-1, 1]^3."""
+    coordenadas = tuple(
+        -1.0 + (2.0 * i) / (resolucion - 1)
+        for i in range(resolucion)
+    )
+    return tuple(
+        (x, y, z)
+        for x in coordenadas
+        for y in coordenadas
+        for z in coordenadas
+    )
 
-def difference(solid1: Solid, solid2: Solid) -> Solid:
-    """Diferencia booleana (solid1 - solid2)"""
-    def contains(point: Vector3) -> bool:
-        # Un punto está en la diferencia si está en el primero
-        # Y NO en el segundo.
-        return solid1.contains(point) and not solid2.contains(point)
+def calcular_iou_csg(solido_a: SDF, solido_b: SDF, resolucion: int = 14) -> float:
+    """
+    Calcula el grado de coincidencia volumétrica (Índice de Jaccard / IoU 3D)
+    usando las operaciones puras CSG intersection y union:
+    IoU = Volumen(A ∩ B) / Volumen(A ∪ B)
+    """
+    puntos = _generar_rejilla_puntos(resolucion)
+    solido_interseccion = intersection(solido_a, solido_b)
+    solido_union = union(solido_a, solido_b)
 
-    # El Bounding Box resultante es, por definición, el de solid1
-    return Solid(contains, solid1.bounds)
+    dentro_interseccion = sum(1 for p in puntos if solido_interseccion(p) <= 0.0)
+    dentro_union = sum(1 for p in puntos if solido_union(p) <= 0.0)
+
+    if dentro_union == 0:
+        return 0.0
+    return dentro_interseccion / dentro_union
