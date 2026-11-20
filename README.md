@@ -115,6 +115,16 @@ Puedes agregar nuevas categorías de comparación simplemente depositando archiv
 
 ---
 
+## 🖼️ Vista Previa de Modelos 3D (Visor STL)
+
+Visualización en visor 3D de las mallas analizadas, normalizadas y exportadas en formato `.stl` por el sistema:
+
+| Arma Corta (`Arma_corta.stl`) | Objeto Punzocortante (`Navaja.stl`) | Arma Larga (`Misil.stl`) |
+| :---: | :---: | :---: |
+| ![Arma Corta](docs/img/arma_corta_stl.png) | ![Navaja](docs/img/Navaja.stl.png) | ![Misil](docs/img/Misil.png) |
+
 ## 📚 Material
+
+---
 
 - **Repositorio de Modelos 3D de Referencia (Creality Cloud):** https://www.crealitycloud.com/pt *(Fuente utilizada para obtener las mallas 3D base en formato STL/OBJ de armas cortas, largas y objetos de comparación)*.
