@@ -1,41 +1,46 @@
-# 🎬 Guion de Presentación: Detector de Armas con Modelo 3D
+Apertura
 
-- **Duración estimada:** 45 – 55 segundos
-- **Participantes:** Reymundo, Josué y Christian
-- **Materia:** Programación Funcional — Universidad de Colima
+Chris
+Buenos días. Quiero que imaginen una escuela, un aeropuerto o una aduana donde una persona revisa cientos de imágenes de cámaras o de rayos X cada hora. Un descuido de unos segundos puede costar vidas.
 
----
+La vigilancia humana se cansa y se distrae. Por eso les presento DetectAr: un sistema que usa visión por computadora para identificar armas en tiempo real y alertar al personal de seguridad en segundos."
 
-* **Josue:**  
-  ¿Sabías que una cámara tradicional puede confundir un objeto cotidiano con un arma… o peor, dejar pasar una amenaza real? Nosotros creamos la solución definitiva.
+Qué detecta (45 seg)
 
----
+"DetectAr clasifica automáticamente cinco categorías:
 
-## 💻 Escena 2: Solución Técnica y Demostración
-> **Toma:** Corte a pantalla mostrando el visor 3D con los modelos (`Arma_corta.stl` y `Navaja.stl`) y la consola ejecutando `python src/main.py` con los porcentajes de similitud.
+Armas cortas: pistolas y revólveres.
+Armas largas: rifles y escopetas.
+Armas punzocortantes: cuchillos, machetes y objetos similares.
+Municiones y balas: incluso en imágenes de inspección, como equipaje o paquetería.
+Misiles y artillería: pensado para aduanas, puertos, instalaciones de defensa y análisis de imágenes aéreas.
 
-* **REYMUNDO** 
-  Presentamos el **Detector de Armas con Modelo 3D**. Nuestro software no adivina por simples imágenes: analiza la geometría y el volumen exacto de cualquier objeto escaneado en 3D. En segundos, lo alinea, lo compara contra plantillas de armas cortas, largas o punzocortantes, calcula el porcentaje de coincidencia y exporta el modelo ya etiquetado. Además, está desarrollado en Python puro bajo programación funcional: es ultraligero, no necesita librerías pesadas y puedes agregar nuevas armas con solo arrastrar un archivo.
+El sistema no solo dice 'hay un arma'. Indica de qué tipo es y en qué parte de la imagen está."
 
----
+Cómo funciona (45 seg)
 
-## 🌍 Escena 3: Aplicaciones y Casos de Uso
-> 
-* **CHRISTIAN:**  
-  ¿Y dónde se puede implementar? En sectores clave donde la seguridad es prioridad:
-  * **Aeropuertos y aduanas:** integrado a escáneres 3D de equipaje para detectar armas o piezas desarmadas al instante.
-  * **Plataformas y talleres de impresión 3D:** para analizar archivos antes de imprimir y bloquear la fabricación ilegal de armas caseras.
-  * **Ámbito forense y seguridad privada:** para clasificar y catalogar evidencia digital de forma automática.
+"Es sencillo:
 
----
+Entrada: el sistema recibe video de cámaras de seguridad o imágenes de escáneres de rayos X.
+Análisis: un modelo de inteligencia artificial, entrenado con miles de imágenes etiquetadas, identifica y clasifica el objeto.
+Alerta: se muestra un recuadro sobre el objeto, se registra el evento con hora y ubicación, y se notifica al operador.
+Verificación humana: la decisión final siempre la toma una persona. DetectAr apoya, no reemplaza.
 
-## 🚀 Escena 4: Cierre
+Además, el operador puede marcar falsos positivos para que el sistema mejore con el tiempo."
 
-* **R:Josue**  
-  Precisión matemática, velocidad y cero complicaciones.
+Beneficios (30 seg)
 
-* **REYMUNDO Y CHRISTIAN *(los 2)*:**  
-  **Detector de Armas 3D**: inteligencia geométrica al servicio de la seguridad.
+"¿Por qué elegir DetectAr?
 
----
+Respuesta en segundos, sin depender de que alguien esté mirando la pantalla.
+Funciona las 24 horas sin fatiga.
+Se integra con cámaras existentes, sin cambiar toda la infraestructura.
+Registro de evidencia para auditorías y reportes.
+Escalable: desde una escuela hasta una red de aeropuertos."
+Cierre (30 seg)
 
+"Ningún sistema es perfecto, y por eso combinamos tecnología con criterio humano. Pero cada segundo que se gana en una alerta puede ser decisivo.
+
+DetectAr ofrece una prueba piloto gratuita de 30 días en una zona de su instalación. Evalúen resultados reales antes de comprometerse.
+
+La seguridad no debería depender de la suerte, sino de la prevención. Muchas gracias."
