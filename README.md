@@ -9,6 +9,11 @@ Sistema funcional para la detección de armas y su representación/análisis en 
 - **Profesor:** Gonzalez Zepeda Sebastian
 - **Semestre:** Agosto 2026 - Enero 2027
 
+**Integrantes**
+- Emilio Raymundo Peña Olivo
+- Christian Alberto Gómez Cardona
+- Josue Abisai Andres Paulino
+
 ---
 
 ## 🎯 Objetivos
@@ -45,6 +50,9 @@ Generador_de_Modelos_3D_Parametricos/
 │   ├── Revolver.stl                          # Plantilla de revólver
 │   └── Tiro.stl                              # Plantilla de munición / proyectil
 ├── docs/                                     # Documentación técnica y matemática del sistema
+|   ├── Entregables/
+│   │   ├── Guion.md                          # Guion para la creacion de el video 
+│   │   ├── link.md                           # Link del video 
 │   ├── api_guide.md                          # Guía de referencia de funciones puras y módulos
 │   ├── como_funciona_el_codigo.md            # Explicación del flujo y arquitectura funcional
 │   └── referencia_matem_tica_y_geom_trica.md # Fundamentos de álgebra lineal, curvas y CSG
@@ -83,7 +91,9 @@ Generador_de_Modelos_3D_Parametricos/
    cd Generador_de_Modelos_3D_Parametricos
    ```
 4. **Colocar el modelo a evaluar:**
-   Guarda cualquier archivo `.stl` (en formato ASCII o Binario) dentro de la carpeta `input_analizar/`.
+   Guarda cualquier archivo `.stl` (en formato ASCII o Binario) dentro de la carpeta `input_analizar/`
+
+   - Nota: El archivo agurdado debe tener el nombre "objeto_desconocido"
 
 5. **Ejecutar el pipeline de análisis:**
    ```bash
@@ -92,7 +102,7 @@ Generador_de_Modelos_3D_Parametricos/
 
 6. **Revisar resultados:**
    - La clasificación y los porcentajes de coincidencia se mostrarán en la consola.
-   - La malla 3D normalizada y etiquetada se exportará automáticamente en formatos `.stl` y `.obj` dentro de `output_clasificados/`.
+   - La malla 3D normalizada y etiquetada se exportará automáticamente en formatos `.stl` y `.obj` dentro de `output_clasificados/`
 
 ---
 
